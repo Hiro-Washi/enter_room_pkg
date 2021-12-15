@@ -1,50 +1,71 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# if door is open, go. if its close, 
-
 import rospy
+import time
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 
-class EnterRoomServer():  
+class EnterRoomServer():
     def __init__(self):
+        self.twist_pub = rospy.Publisher('/vmegarover/diff_drive_controller/cmd_vel', Twist, queue_size=10)
         rospy.loginfo("Ready")
-        self.twist_pub = rospy.Publisher('/vmegarocer/diff_drive_controller/cmd_vel', Twist,queue_size=1)
-        self .front_laser_dist = 999.9
-        rospy.Pubscriber('/scan', LaserScan, self.laserCB) #
+        rospy.Subscriber('/scan', LaserScan, self.laserCB) 
+        self.front_laser_dist = 999.9
 
-    def laserCB(self, recieve_msg):
-        self.laser_dist = recive_msg.ranges[359]
+    def laserCB(self, receive_msg):
+        self.front_laser_dist = receive_msg.ranges[359]
 
-    def execute(self, srv_req):
-        vel =Twist()                       
-        vel.lineat.x = 10
-	taeget_dist = 5       # ?
-        safe_dist =1.0
-        target_time = target_dist / vel.linear.x # time
-        start_time = rospy.get_time()
+    def execute(self):
+        print "Im OK."
+        vel = Twist()
+        vel.linear.x = 0.2
+        target_dist = 3.0
+        safe_dist = 1.0
+        target_time = target_dist / vel.linear.x
+        start_time = time.time()
+        
 
-        while not rospy.is_shutdown(): 
-
-	    
-            if  self.laser_dist > safe_dist:   # when safe dist
-                print("now time:", rospy.get_time - start_time)
-                selt.twist_pub.publish(vel)
-            elif self.laser_dist <= safe_dist: # when door is close
-                print("dude..can't enter room, open the door.")
-                rospy.sleep(3.0)
-            else:                              # when nothing in front
-                vel.linear.x = 0
+        while not rospy.is_shutdown():
+            if self.front_laser_dist >= safe_dist and (time.time() - start_time) < target_time:
+                print ": now time ---", time.time() - start_time
                 self.twist_pub.publish(vel)
-                end_time = rospy.get_time() - start_time 
+                rospy.sleep(0.05)
+            elif self.front_laser_dist <= safe_dist:
+                 print "Oops! can't enter room, open the door."
+                 rospy.sleep(1.0)
+            else:
+                vel.linear.x = 0.0
+                self.twist_pub.publish(vel)
+                end_time = time.time() - start_time
                 break
 
-        if end_time >= target_time:
-            print("Enter success")
-            print("distance:", srv_req.dist, "velocity:" , srv_req.vel)
+        if end_time >= target_time and  self.front_laser_dist > safe_dist:               
+            print "Im going to enter room."
+            rospy.sleep(2.0)
+            vel.linear.x = 0.5
+            self.twist_pub.publish(vel)
+            start_time = time.time()
+            while not rospy.is_shutdown():
+                if start_time - time.time >= float(5.0):
+                    vel.linear.x = 0.0
+                    self.twist_pub.publish(vel)
+                    print "Im done."
+                    break
 
 if __name__=="__main__":
-    rospy.init_node("enter_room")
-    ers = EnterRoomServer()                 
+    rospy.init_node("door_enter")
+    ers = EnterRoomServer()
+    ers.execute()
     rospy.spin()
+
+'''      linear_speed = 0.5
+         target_dist = 5
+        target_time = target_dist/linear_speed
+
+         
+         if back_time - rospy.get_time() >= 1:
+             vel.linear.x = 0
+             rospy.sleep(1.0)
+
+'''
