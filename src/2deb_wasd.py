@@ -4,7 +4,6 @@ import rospy
 from geometry_msgs.msg import Twist
 
 rospy.init_node("deb")
-
 pub = rospy.Publisher('/cmd_vel_mux/input/teleop',Twist,queue_size=1)
 
 def main():
@@ -20,7 +19,6 @@ def main():
         if "d" in move:
             vel.angular.z = -1
 	pub.publish(vel)
-
 
 if __name__ == '__main__':
     main()
