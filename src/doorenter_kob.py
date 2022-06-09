@@ -24,8 +24,6 @@ class EnterRoomServer():
         safe_dist = 1.0
         target_time = target_dist / vel.linear.x
         start_time = time.time()
-        
-
         while not rospy.is_shutdown():
             if self.front_laser_dist >= safe_dist and (time.time() - start_time) < target_time:
                 print ": now time ---", time.time() - start_time
